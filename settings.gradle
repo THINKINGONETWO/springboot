@@ -1,0 +1,3 @@
+rootProject.name = 'springboot2'
+include 'hello-service'
+

@@ -1,0 +1,81 @@
+plugins {
+    id 'com.google.cloud.tools.jib' version '0.9.13'
+}
+
+static def getGitVersion() {
+    return 'jiangwentao2'
+}
+
+task setupExtraDir(type: Copy) {
+    //copy and rename prod config file.
+    from 'src/main/resources'
+    into 'build/extraDir/app/resources'
+    rename { filename -> filename.replace "-$env", ''}
+}
+
+task deleteExtraDir(type: Delete) {
+    delete 'build/extraDir'
+}
+
+tasks.jib.dependsOn  deleteExtraDir
+tasks.jib.dependsOn  setupExtraDir
+
+ext { 
+    /*
+    sg-registry:
+registry.ap-southeast-1.aliyuncs.com
+registry-vpc.ap-southeast-1.aliyuncs.com
+
+     hz-registry:
+registry.cn-hangzhou.aliyuncs.com
+registry-vpc.cn-hangzhou.aliyuncs.com
+     */
+
+    dockerRegistry = "registry.cn-hangzhou.aliyuncs.com"
+    env = project.hasProperty("env") ? project.property("env") : "prod"
+    if (env == "sg") {
+        dockerRegistry = "registry.ap-southeast-1.aliyuncs.com"
+    }
+}
+
+jib {
+    allowInsecureRegistries = true
+    from {
+        //registry.cn-hangzhou.aliyuncs.com
+        //registry-vpc.cn-hangzhou.aliyuncs.com
+        image = "registry.cn-hangzhou.aliyuncs.com/xiaoman-common/centos7-jdk8:1.5"
+        auth {
+            username = 'jinyuncrm@aliyun.com'
+            password = 'Crm123654'
+        }
+    }
+    to {
+        image = "${dockerRegistry}/xiaoman-infra/hello-service:1.6-${getGitVersion()}"
+        auth {
+            username = 'jinyuncrm@aliyun.com'
+            password = 'Crm123654'
+        }
+    }
+
+    extraDirectory = file('build/extraDir')
+    container {
+        //'-XX:+UnlockExperimentalVMOptions', '-XX:+UseCGroupMemoryLimitForHeap', '-XX:MaxRAMFraction=2'
+        //'-XX:+PrintGCDetails', '-XX:+PrintGCDateStamps'
+        jvmFlags = ['-XshowSettings:vm', '-XX:+ExitOnOutOfMemoryError', '-Djava.awt.headless=true', '-XX:+UseConcMarkSweepGC', '-XX:CMSInitiatingOccupancyFraction=70', '-XX:NewRatio=3']
+        mainClass = "com.xiaoman.test.Application"
+        labels = ["developer": "williamjiang"]
+    }
+}
+
+apply plugin: 'org.springframework.boot'
+
+ext['reactor.version'] = '3.1.0.RELEASE'
+
+jar {
+    baseName = 'hello_server'
+    version = '1.0.0'
+}
+
+springBoot {
+    mainClass = 'com.xiaoman.test.Application'
+}

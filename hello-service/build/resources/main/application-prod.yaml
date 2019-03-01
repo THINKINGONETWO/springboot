@@ -1,0 +1,9 @@
+server:
+  port: 10080
+endpoints.sensitive: false
+management.security.enabled: false
+spring:
+  application:
+    name: 'williamjiang-hello-service'
+
+
